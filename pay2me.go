@@ -36,6 +36,20 @@ type Deal struct {
 	Status      string `json:"status" schema:"status"`
 }
 
+type Deals []Deal
+
+func (d *Deals) CompleteJson() io.Reader {
+	var dealsIds []string
+	for _, d := range *d {
+		dealsIds = append(dealsIds, d.ObjectID)
+	}
+	dealsMap := map[string][]string{
+		"deals": dealsIds,
+	}
+	j, _ := json.Marshal(dealsMap)
+	return bytes.NewReader(j)
+}
+
 // required fields: OrderAmount, OrderDesc, ObjectID
 func (d *Deal) CreationJSON() Pay2MeParams {
 	return Pay2MeParams{
@@ -120,17 +134,8 @@ func (p *Pay2MeApi) DealComplete(deal *Deal) (*http.Response, error) {
 	return p.doRequest(r)
 }
 
-func (p *Pay2MeApi) DealsComplete(deals *[]Deal) (*http.Response, error) {
-	var dealsIds []string
-	for _, d := range *deals {
-		dealsIds = append(dealsIds, d.ObjectID)
-	}
-	dealsMap := map[string][]string{
-		"deals": dealsIds,
-	}
-	j, _ := json.Marshal(dealsMap)
-	dealsReader := bytes.NewReader(j)
-	r, err := http.NewRequest("PUT", p.ApiUrl+"/deals/complete", dealsReader)
+func (p *Pay2MeApi) DealsComplete(deals *Deals) (*http.Response, error) {
+	r, err := http.NewRequest("PUT", p.ApiUrl+"/deals/complete", deals.CompleteJson())
 	if err != nil {
 		return nil, err
 	}
