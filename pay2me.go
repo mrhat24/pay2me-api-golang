@@ -1,8 +1,11 @@
 package pay2me_api
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
+	"encoding/json"
+	"io"
 	"net/http"
 	"sort"
 )
@@ -33,6 +36,15 @@ type Deal struct {
 	Status      string `json:"status" schema:"status"`
 }
 
+// required fields: OrderAmount, OrderDesc, ObjectID
+func (d *Deal) CreationJSON() Pay2MeParams {
+	return Pay2MeParams{
+		"order_amount": d.OrderAmount,
+		"order_desc":   d.OrderDesc,
+		"order_id":     d.ObjectID,
+	}
+}
+
 type Pay2MeParams map[string]string
 
 func (params Pay2MeParams) Sorted() Pay2MeParams {
@@ -50,6 +62,13 @@ func (params Pay2MeParams) Sorted() Pay2MeParams {
 	return newParams
 }
 
+func (params Pay2MeParams) Json(key string) io.Reader {
+	p := params.Sorted()
+	p["signature"] = GetSignature(p, key)
+	j, _ := json.Marshal(p)
+	return bytes.NewReader(j)
+}
+
 func (params Pay2MeParams) InlineValues() string {
 	result := ""
 	for k := range params {
@@ -59,18 +78,79 @@ func (params Pay2MeParams) InlineValues() string {
 }
 
 type Pay2MeApi struct {
-	key string
+	key    string
+	ApiUrl string
 }
 
 func (p *Pay2MeApi) doRequest(r *http.Request) (*http.Response, error) {
 	c := http.DefaultClient
+	r.Header.Add("X-API-KEY", p.key)
+	r.Header.Add("Accept", "application/json")
 	return c.Do(r)
 }
 
-func (p *Pay2MeApi) getSignature(params Pay2MeParams, key string) string {
+func GetSignature(params Pay2MeParams, key string) string {
 	sorted := params.Sorted()
 	values := sorted.InlineValues()
-	return md5String(values + p.key)
+	return md5String(values + key)
+}
+
+func (p *Pay2MeApi) DealCreate(deal *Deal) (*http.Response, error) {
+	dealParams := deal.CreationJSON()
+	r, err := http.NewRequest("POST", p.ApiUrl+"/deals", dealParams.Json(p.key))
+	if err != nil {
+		return nil, err
+	}
+	return p.doRequest(r)
+}
+
+func (p *Pay2MeApi) DealStatus(deal *Deal) (*http.Response, error) {
+	r, err := http.NewRequest("GET", p.ApiUrl+"/deals/status/"+deal.ObjectID, nil)
+	if err != nil {
+		return nil, err
+	}
+	return p.doRequest(r)
+}
+
+func (p *Pay2MeApi) DealComplete(deal *Deal) (*http.Response, error) {
+	r, err := http.NewRequest("PUT", p.ApiUrl+"/deals/complete/"+deal.ObjectID, nil)
+	if err != nil {
+		return nil, err
+	}
+	return p.doRequest(r)
+}
+
+func (p *Pay2MeApi) DealsComplete(deals *[]Deal) (*http.Response, error) {
+	var dealsIds []string
+	for _, d := range *deals {
+		dealsIds = append(dealsIds, d.ObjectID)
+	}
+	dealsMap := map[string][]string{
+		"deals": dealsIds,
+	}
+	j, _ := json.Marshal(dealsMap)
+	dealsReader := bytes.NewReader(j)
+	r, err := http.NewRequest("PUT", p.ApiUrl+"/deals/complete", dealsReader)
+	if err != nil {
+		return nil, err
+	}
+	return p.doRequest(r)
+}
+
+func (p *Pay2MeApi) DealCancel(deal *Deal) (*http.Response, error) {
+	r, err := http.NewRequest("PUT", p.ApiUrl+"/deals/cancel/"+deal.ObjectID, nil)
+	if err != nil {
+		return nil, err
+	}
+	return p.doRequest(r)
+}
+
+func CreatePay2MeApi(key string) *Pay2MeApi {
+	api := &Pay2MeApi{
+		key:    key,
+		ApiUrl: "https://api.pay2me.world/v3",
+	}
+	return api
 }
 
 func md5String(src string) string {
