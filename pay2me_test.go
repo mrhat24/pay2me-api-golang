@@ -2,6 +2,8 @@ package pay2me_api
 
 import (
 	"bytes"
+	"fmt"
+	"io/ioutil"
 	"testing"
 )
 
@@ -51,4 +53,22 @@ func TestPay2MeParams_Json(t *testing.T) {
 	if len(s) == 0 {
 		t.Errorf("len is 0")
 	}
+}
+
+func TestPay2MeApi_DealCreate(t *testing.T) {
+	p2m := CreatePay2MeApi("")
+	r, _ := p2m.DealCreate(&Deal{
+		CreateDate:  "",
+		OrderID:     "",
+		UpdateDate:  "",
+		ObjectID:    "",
+		Redirect:    "",
+		OrderAmount: "",
+		Signature:   "",
+		ExpireDate:  "",
+		OrderDesc:   "",
+		Status:      "",
+	})
+	body, _ := ioutil.ReadAll(r.Body)
+	fmt.Println(string(body))
 }

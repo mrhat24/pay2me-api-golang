@@ -153,7 +153,7 @@ func (p *Pay2MeApi) DealCancel(deal *Deal) (*http.Response, error) {
 func CreatePay2MeApi(key string) *Pay2MeApi {
 	api := &Pay2MeApi{
 		key:    key,
-		ApiUrl: "https://api.pay2me.world/v3",
+		ApiUrl: "https://api.pay2me.world/api/v3",
 	}
 	return api
 }
