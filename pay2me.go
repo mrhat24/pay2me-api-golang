@@ -34,6 +34,7 @@ type Deal struct {
 	ExpireDate  string `json:"expire_date" schema:"expire_date"`
 	OrderDesc   string `json:"order_desc" schema:"order_desc"`
 	Status      string `json:"status" schema:"status"`
+	Error       string `json:"error" schema:"error"`
 }
 
 type Deals []Deal
