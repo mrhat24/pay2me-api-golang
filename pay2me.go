@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"sort"
@@ -24,17 +25,17 @@ type CreateDealParams struct {
 }
 
 type Deal struct {
-	CreateDate  string `json:"create_date" schema:"create_date"`
-	OrderID     string `json:"order_id" schema:"order_id"`
-	UpdateDate  string `json:"update_date" schema:"update_date"`
-	ObjectID    string `json:"object_id" schema:"object_id"`
-	Redirect    string `json:"redirect" schema:"redirect"`
-	OrderAmount string `json:"order_amount" schema:"order_amount"`
-	Signature   string `json:"signature" schema:"signature"`
-	ExpireDate  string `json:"expire_date" schema:"expire_date"`
-	OrderDesc   string `json:"order_desc" schema:"order_desc"`
-	Status      string `json:"status" schema:"status"`
-	Error       string `json:"error" schema:"error"`
+	CreateDate  string  `json:"create_date" schema:"create_date"`
+	OrderID     string  `json:"order_id" schema:"order_id"`
+	UpdateDate  string  `json:"update_date" schema:"update_date"`
+	ObjectID    string  `json:"object_id" schema:"object_id"`
+	Redirect    string  `json:"redirect" schema:"redirect"`
+	OrderAmount float64 `json:"order_amount" schema:"order_amount"`
+	Signature   string  `json:"signature" schema:"signature"`
+	ExpireDate  string  `json:"expire_date" schema:"expire_date"`
+	OrderDesc   string  `json:"order_desc" schema:"order_desc"`
+	Status      string  `json:"status" schema:"status"`
+	Error       string  `json:"error" schema:"error"`
 }
 
 type Deals []Deal
@@ -54,7 +55,7 @@ func (d *Deals) CompleteJson() io.Reader {
 // required fields: OrderAmount, OrderDesc, ObjectID
 func (d *Deal) CreationJSON() Pay2MeParams {
 	return Pay2MeParams{
-		"order_amount": d.OrderAmount,
+		"order_amount": fmt.Sprintf("%f", d.OrderAmount),
 		"order_desc":   d.OrderDesc,
 		"order_id":     d.ObjectID,
 	}
